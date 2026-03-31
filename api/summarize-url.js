@@ -1,10 +1,8 @@
 export default async function handler(req, res) {
-  // 🔥 Autoriser les requêtes venant de ton extension Chrome
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  // Répondre immédiatement aux requêtes OPTIONS (pré‑vol CORS)
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
@@ -20,10 +18,23 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "URL manquante" });
     }
 
-    // 🧪 Résumé fictif pour tester la chaîne complète
-    const fakeSummary = `Résumé fictif de la page : ${url}`;
+    // 1. Télécharger la page (fetch natif Vercel)
+    const response = await fetch(url);
+    const html = await response.text();
 
-    return res.status(200).json({ summary: fakeSummary });
+    // 2. Extraire le texte
+    const text = html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    // 3. Résumé simple
+    const sentences = text.split(". ");
+    const summary = sentences.slice(0, 3).join(". ") + ".";
+
+    return res.status(200).json({ summary });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Erreur interne du serveur" });
